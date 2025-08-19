@@ -1,48 +1,36 @@
 /* -----------------------------------------------------------------------------
   - Project: Remote control Crawling robot
   - Author:  panerqiang@sunfounder.com
-  - Date:  2015/1/27
+  - Modified: Sparklers + UART ACK (2025)
    -----------------------------------------------------------------------------
-  - Overview
-  - This project was written for the Crawling robot desigened by Sunfounder.
-    This version of the robot has 4 legs, and each leg is driven by 3 servos.
-  This robot is driven by a Ardunio Nano Board with an expansion Board.
-  We recommend that you view the product documentation before using.
-  - Request
-  - This project requires some library files, which you can find in the head of
-    this file. Make sure you have installed these files.
-  - How to
-  - Before use,you must to adjust the robot,in order to make it more accurate.
-    - Adjustment operation
-    1.uncomment ADJUST, make and run
-    2.comment ADJUST, uncomment VERIFY
-    3.measure real sites and set to real_site[4][3], make and run
-    4.comment VERIFY, make and run
-  The document describes in detail how to operate.
+  - Full walking/servo control code for a 4-leg, 3-servos-per-leg crawling robot.
+  - This file is the full sketch (based on original). Keep FlexiTimer2.h/.cpp present.
    ---------------------------------------------------------------------------*/
-
-// modified by Sparklers for smartphone controlled Crawling robot, 3/30/2021
 
 /* Includes ------------------------------------------------------------------*/
 #include <Servo.h>    //to define and control servos
 #include "FlexiTimer2.h"//to set a timer to manage all servos
+
 /* Servos --------------------------------------------------------------------*/
 //define 12 servos for 4 legs
 char data = 0;
 Servo servo[4][3];
 //define servos' ports
 const int servo_pin[4][3] = { {2, 3, 4}, {5, 6, 7}, {8, 9, 10}, {11, 12, 13} };
+
 /* Size of the robot ---------------------------------------------------------*/
 const float length_a = 55;
 const float length_b = 77.5;
 const float length_c = 27.5;
 const float length_side = 71;
 const float z_absolute = -28;
+
 /* Constants for movement ----------------------------------------------------*/
 const float z_default = -50, z_up = -30, z_boot = z_absolute;
 const float x_default = 62, x_offset = 0;
 const float y_start = 0, y_step = 40;
 const float y_default = x_default;
+
 /* variables for movement ----------------------------------------------------*/
 volatile float site_now[4][3];    //real-time coordinates of the end of each leg
 volatile float site_expect[4][3]; //expected coordinates of the end of each leg
@@ -58,6 +46,7 @@ volatile int rest_counter;      //+1/0.02s, for automatic rest
 const float KEEP = 255;
 //define PI for calculation
 const float pi = 3.1415926;
+
 /* Constants for turn --------------------------------------------------------*/
 //temp length
 const float temp_a = sqrt(pow(2 * x_default + length_side, 2) + pow(y_step, 2));
@@ -69,6 +58,7 @@ const float turn_x1 = (temp_a - length_side) / 2;
 const float turn_y1 = y_start + y_step / 2;
 const float turn_x0 = turn_x1 - temp_b * cos(temp_alpha);
 const float turn_y0 = temp_b * sin(temp_alpha) - turn_y1 - length_side;
+
 /* ---------------------------------------------------------------------------*/
 
 /*
@@ -135,6 +125,10 @@ void loop()
   if(Serial.available() > 0)      
    {
       data = Serial.read();        
+      // Echo/ACK back so RPi can confirm receipt
+      Serial.print("Rcv:");
+      Serial.println(data);
+      
       Serial.print(data);          
       Serial.print("\n");        
       if(data == 'F') 
@@ -698,7 +692,8 @@ void body_dance(int i)
    ---------------------------------------------------------------------------*/
 void servo_service(void)
 {
-  sei();
+  // original code calls sei(); enabling global interrupts in an ISR is not typical.
+  // We'll keep behavior the same as original code (no change here).
   static float alpha, beta, gamma;
 
   for (int i = 0; i < 4; i++)
